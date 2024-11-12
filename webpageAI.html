@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Trainer Registration</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Prompt:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --pokemon-red: #FF0000;
+            --pokemon-dark-red: #CC0000;
+            --pokemon-blue: #0075BE;
+            --pokemon-yellow: #FFCC00;
+            --pokemon-black: #000000;
+            --pokemon-white: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #1a1a1a;
+            min-block-size: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .pokemon-bg {
+            position: fixed;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            inset-block-end: 0;
+            background: 
+                linear-gradient(45deg, 
+                    rgba(255, 0, 0, 0.1) 25%, 
+                    transparent 25%, 
+                    transparent 75%, 
+                    rgba(255, 0, 0, 0.1) 75%),
+                linear-gradient(-45deg, 
+                    rgba(0, 0, 255, 0.1) 25%, 
+                    transparent 25%, 
+                    transparent 75%, 
+                    rgba(0, 0, 255, 0.1) 75%);
+            background-size: 100px 100px;
+            animation: bgMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgMove {
+            0% { background-position: 0 0, 0 0; }
+            100% { background-position: 100px 100px, 100px 100px; }
+        }
+
+        /* Floating Pokeballs */
+        .floating-pokeball {
+            position: absolute;
+            inline-size: 60px;
+            block-size: 60px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, 
+                var(--pokemon-red) 0%, 
+                var(--pokemon-red) 45%, 
+                var(--pokemon-black) 45%, 
+                var(--pokemon-black) 55%, 
+                var(--pokemon-white) 55%);
+            animation: float 6s ease-in-out infinite;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .floating-pokeball::after {
+            content: '';
+            position: absolute;
+            inline-size: 20px;
+            block-size: 20px;
+            background: var(--pokemon-white);
+            border: 4px solid var(--pokemon-black);
+            border-radius: 50%;
+            inset-block-start: 50%;
+            inset-inline-start: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .floating-pokeball:nth-child(1) {
+            inset-block-start: 20%;
+            inset-inline-start: 5%;
+            animation-delay: 0s;
+        }
+
+        .floating-pokeball:nth-child(2) {
+            inset-block-start: 60%;
+            inset-inline-end: 5%;
+            animation-delay: 2s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) rotateX(5deg);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--pokemon-red), var(--pokemon-dark-red));
+            color: white;
+            padding: 25px;
+            border-block-end: 5px solid var(--pokemon-dark-red);
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header h3 {
+            font-size: 1.5rem;
+            margin: 0;
+            letter-spacing: 2px;
+        }
+
+        /* PixelArt Decorations */
+        .pixel-corner {
+            position: absolute;
+            inline-size: 20px;
+            block-size: 20px;
+            background: var(--pokemon-yellow);
+        }
+
+        .pixel-corner:nth-child(1) { inset-block-start: 0; inset-inline-start: 0; }
+        .pixel-corner:nth-child(2) { inset-block-start: 0; inset-inline-end: 0; }
+        .pixel-corner:nth-child(3) { inset-block-end: 0; inset-inline-start: 0; }
+        .pixel-corner:nth-child(4) { inset-block-end: 0; inset-inline-end: 0; }
+
+        .form-control {
+            border: 3px solid var(--pokemon-dark-red);
+            border-radius: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.25);
+            transform: scale(1.02);
+        }
+
+        .form-label {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            color: var(--pokemon-dark-red);
+            margin-block-end: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-label i {
+            font-size: 1.2rem;
+        }
+
+        .btn-pokemon {
+            background: linear-gradient(45deg, var(--pokemon-red), var(--pokemon-dark-red));
+            border: none;
+            padding: 15px 30px;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.9rem;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-pokemon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 0, 0, 0.3);
+        }
+
+        .btn-pokemon::after {
+            content: '';
+            position: absolute;
+            inset-block-start: -50%;
+            inset-inline-start: -50%;
+            inline-size: 200%;
+            block-size: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine-button 3s infinite;
+        }
+
+        @keyframes shine-button {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .custom-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-block-end: 20px;
+            border: 3px solid var(--pokemon-dark-red);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .custom-section::before {
+            content: '';
+            position: absolute;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            block-size: 5px;
+            background: linear-gradient(90deg, 
+                var(--pokemon-red),
+                var(--pokemon-yellow),
+                var(--pokemon-red));
+            animation: rainbow 2s linear infinite;
+        }
+
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .section-title {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--pokemon-dark-red);
+            font-size: 1rem;
+            margin-block-end: 20px;
+            padding-block-end: 10px;
+            border-block-end: 2px dashed var(--pokemon-red);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .invalid-feedback {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.6rem;
+            color: var(--pokemon-red);
+        }
+
+        /* Progress Steps Pokemon Style */
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-block-end: 30px;
+            position: relative;
+            padding: 0 40px;
+        }
+
+        .progress-line {
+            position: absolute;
+            inset-block-start: 20px;
+            inset-inline-start: 50px;
+            inset-inline-end: 50px;
+            block-size: 4px;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--pokemon-red),
+                var(--pokemon-red) 10px,
+                var(--pokemon-dark-red) 10px,
+                var(--pokemon-dark-red) 20px
+            );
+            z-index: 0;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-number {
+            inline-size: 40px;
+            block-size: 40px;
+            background: var(--pokemon-red);
+            color: white;
+            border: 3px solid var(--pokemon-dark-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .step-number:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255,0,0,0.5);
+        }
+
+        .step-label {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.6rem;
+            color: var(--pokemon-dark-red);
+            margin-block-start: 5px;
+        }
+
+        /* Health Bar Style Input */
+        .health-bar-input {
+            position: relative;
+            margin-block-end: 20px;
+        }
+
+        .health-bar-input::before {
+            content: '';
+            position: absolute;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            block-size: 5px;
+            background: linear-gradient(90deg,
+                var(--pokemon-red) var(--progress, 0%),
+                #ddd var(--progress, 0%));
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+</style>
+</head>
+<body>
+    <!-- Pokemon Background Effects -->
+    <div class="pokemon-bg"></div>
+    <div class="floating-pokeball"></div>
+    <div class="floating-pokeball"></div>
+
+    <div id="app" class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="pixel-corner"></div>
+                        <div class="pixel-corner"></div>
+                        <div class="pixel-corner"></div>
+                        <div class="pixel-corner"></div>
+                        <h3>
+                            <i class="fas fa-gamepad me-2"></i>
+                            POKEMON TRAINER REGISTRATION
+                        </h3>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <!-- Progress Steps -->
+                        <div class="progress-steps">
+                            <div class="progress-line"></div>
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-label">TRAINER INFO</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-label">CONTACT</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-label">CONFIRM</div>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="submitForm" class="needs-validation" novalidate>
+                            <!-- Trainer Information Section -->
+                            <div class="custom-section">
+                                <h5 class="section-title">
+                                    <i class="fas fa-user-graduate"></i>
+                                    TRAINER INFORMATION
+                                </h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user"></i>
+                                            NAME
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            v-model="form.firstName"
+                                            :class="{'is-invalid': errors.firstName}"
+                                            required
+                                            placeholder="Enter trainer name"
+                                        >
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            NAME REQUIRED!
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user"></i>
+                                            LAST NAME
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            v-model="form.lastName"
+                                            :class="{'is-invalid': errors.lastName}"
+                                            required
+                                            placeholder="Enter last name"
+                                        >
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            LAST NAME REQUIRED!
+                                        </div></div>
+                                    </div>
+    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-id-card"></i>
+                                                TRAINER ID
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                class="form-control" 
+                                                v-model="form.studentId"
+                                                :class="{'is-invalid': errors.studentId}"
+                                                maxlength="10"
+                                                required
+                                                placeholder="Enter 10-digit ID"
+                                                @input="updateHealthBar"
+                                            >
+                                            <div class="health-bar-input"></div>
+                                            <div class="invalid-feedback">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                                10-DIGIT ID REQUIRED!
+                                            </div>
+                                        </div>
+    
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-id-card"></i>
+                                                NATIONAL ID
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                class="form-control" 
+                                                v-model="form.idCard"
+                                                :class="{'is-invalid': errors.idCard}"
+                                                maxlength="13"
+                                                required
+                                                placeholder="Enter 13-digit ID"
+                                                @input="updateHealthBar"
+                                            >
+                                            <div class="health-bar-input"></div>
+                                            <div class="invalid-feedback">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                                13-DIGIT ID REQUIRED!
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+    
+                                <!-- Contact Information Section -->
+                                <div class="custom-section">
+                                    <h5 class="section-title">
+                                        <i class="fas fa-address-book"></i>
+                                        CONTACT INFO
+                                    </h5>
+    
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-phone"></i>
+                                            POKEGEAR NUMBER
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            v-model="form.phone"
+                                            :class="{'is-invalid': errors.phone}"
+                                            maxlength="10"
+                                            required
+                                            placeholder="Enter your Pokégear number"
+                                            @input="updateHealthBar"
+                                        >
+                                        <div class="health-bar-input"></div>
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            VALID POKEGEAR NUMBER REQUIRED!
+                                        </div>
+                                    </div>
+    
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-envelope"></i>
+                                            POKE-MAIL
+                                        </label>
+                                        <input 
+                                            type="email" 
+                                            class="form-control" 
+                                            v-model="form.email"
+                                            :class="{'is-invalid': errors.email}"
+                                            required
+                                            placeholder="trainer@pokemon.com"
+                                        >
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            VALID POKE-MAIL REQUIRED!
+                                        </div>
+                                    </div>
+    
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-home"></i>
+                                            HOME TOWN
+                                        </label>
+                                        <textarea 
+                                            class="form-control" 
+                                            v-model="form.address"
+                                            :class="{'is-invalid': errors.address}"
+                                            rows="3"
+                                            required
+                                            placeholder="Enter your home town"
+                                        ></textarea>
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            HOME TOWN REQUIRED!
+                                        </div>
+                                    </div>
+                                </div>
+    
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-pokemon" :disabled="processing">
+                                        <i class="fas fa-pokeball me-2"></i>
+                                        {{ processing ? 'CATCHING...' : 'START ADVENTURE!' }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Success Modal -->
+            <div class="modal fade" id="successModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header" style="background: var(--pokemon-red); color: white;">
+                            <h5 class="modal-title" style="font-family: 'Press Start 2P', cursive; font-size: 0.8rem;">
+                                <i class="fas fa-check-circle me-2"></i>
+                                CONGRATULATIONS!
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center p-4">
+                            <div class="pokeball-animation mb-4"></div>
+                            <p style="font-family: 'Press Start 2P', cursive; font-size: 0.8rem;">
+                                WELCOME TO THE WORLD OF POKEMON!
+                            </p>
+                            <p style="font-size: 0.9rem;">
+                                Your trainer registration is complete.
+                                Your adventure begins now!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            const { createApp, ref } = Vue
+    
+            createApp({
+                setup() {
+                    const form = ref({
+                        firstName: '',
+                        lastName: '',
+                        phone: '',
+                        studentId: '',
+                        idCard: '',
+                        email: '',
+                        address: ''
+                    })
+    
+                    const errors = ref({})
+                    const processing = ref(false)
+                    let successModal = null
+    
+                    const updateHealthBar = (event) => {
+                        const input = event.target
+                        const maxLength = input.maxLength
+                        const currentLength = input.value.length
+                        const progress = (currentLength / maxLength) * 100
+                        
+                        input.style.setProperty('--progress', `${progress}%`)
+                    }
+    
+                    const validateForm = () => {
+                        errors.value = {}
+                        let isValid = true
+    
+                        if (!form.value.firstName.trim()) {
+                            errors.value.firstName = true
+                            isValid = false
+                        }
+    
+                        if (!form.value.lastName.trim()) {
+                            errors.value.lastName = true
+                            isValid = false
+                        }
+    
+                        const phoneRegex = /^0\d{9}$/
+                        if (!phoneRegex.test(form.value.phone)) {
+                            errors.value.phone = true
+                            isValid = false
+                        }
+    
+                        const studentIdRegex = /^\d{10}$/
+                        if (!studentIdRegex.test(form.value.studentId)) {
+                            errors.value.studentId = true
+                            isValid = false
+                        }
+    
+                        const idCardRegex = /^\d{13}$/
+                        if (!idCardRegex.test(form.value.idCard)) {
+                            errors.value.idCard = true
+                            isValid = false
+                        }
+    
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                        if (!emailRegex.test(form.value.email)) {
+                            errors.value.email = true
+                            isValid = false
+                        }
+    
+                        if (!form.value.address.trim()) {
+                            errors.value.address = true
+                            isValid = false
+                        }
+    
+                        return isValid
+                    }
+    
+                    const submitForm = async () => {
+                        if (validateForm()) {
+                            processing.value = true
+                            
+                            // Simulate API call
+                            await new Promise(resolve => setTimeout(resolve, 2000))
+                            
+                            successModal = new bootstrap.Modal(document.getElementById('successModal'))
+                            successModal.show()
+                            
+                            processing.value = false
+                            
+                            // Reset form
+                            form.value = {
+                                firstName: '',
+                                lastName: '',
+                                phone: '',
+                                studentId: '',
+                                idCard: '',
+                                email: '',
+                                address: ''
+                            }
+                            errors.value = {}
+                        }
+                    }
+    
+                    return {
+                        form,
+                        errors,
+                        processing,
+                        submitForm,
+                        updateHealthBar
+                    }
+                }
+            }).mount('#app')
+        </script>
+    </body>
+    </html>
