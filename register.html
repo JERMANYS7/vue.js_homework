@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงทะเบียนออนไลน์</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --error-color: #dc2626;
+            --success-color: #16a34a;
+            --bg-color: #f1f5f9;
+            --text-color: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            min-block-size: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            inline-size: 100%;
+            max-inline-size: 800px;
+        }
+
+        .header {
+            text-align: center;
+            margin-block-end: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            color: var(--primary-color);
+            margin-block-end: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-block-end: 1rem;
+        }
+
+        .form-group.full {
+            grid-column: span 2;
+        }
+
+        label {
+            display: block;
+            margin-block-end: 0.5rem;
+            font-weight: 500;
+        }
+
+        input, select {
+            inline-size: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        select:disabled {
+            background-color: #f8fafc;
+            cursor: not-allowed;
+        }
+
+        .error {
+            border-color: var(--error-color) !important;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 0.875rem;
+            margin-block-start: 0.25rem;
+            display: none;
+        }
+
+        button {
+            inline-size: 100%;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            inset-block-end: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            inline-size: 100%;
+            max-inline-size: 500px;
+        }
+
+        .modal-header {
+            margin-block-end: 1.5rem;
+        }
+
+        .confirm-details {
+            margin-block-end: 1.5rem;
+        }
+
+        .detail-item {
+            margin-block-end: 1rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            margin-block-end: 0.25rem;
+            display: block;
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .btn-secondary {
+            background-color: #64748b;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success-color);
+            margin-block-end: 1rem;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-spinner {
+            inline-size: 3rem;
+            block-size: 3rem;
+            border: 4px solid #e2e8f0;
+            border-block-start-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-inline-size: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ลงทะเบียนข้อมูล</h1>
+            <p>กรุณากรอกข้อมูลให้ครบถ้วน</p>
+        </div>
+
+        <form id="registrationForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="firstname">ชื่อ</label>
+                    <input type="text" id="firstname" name="firstname" required>
+                    <div class="error-message">กรุณากรอกชื่อ</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastname">นามสกุล</label>
+                    <input type="text" id="lastname" name="lastname" required>
+                    <div class="error-message">กรุณากรอกนามสกุล</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="province">จังหวัด</label>
+                    <select id="province" name="province" required>
+                        <option value="">เลือกจังหวัด</option>
+                    </select>
+                    <div class="error-message">กรุณาเลือกจังหวัด</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="district">อำเภอ</label>
+                    <select id="district" name="district" required disabled>
+                        <option value="">เลือกอำเภอ</option>
+                    </select>
+                    <div class="error-message">กรุณาเลือกอำเภอ</div>
+                </div>
+
+                <div class="form-group full">
+                    <label for="subdistrict">ตำบล</label>
+                    <select id="subdistrict" name="subdistrict" required disabled>
+                        <option value="">เลือกตำบล</option>
+                    </select>
+                    <div class="error-message">กรุณาเลือกตำบล</div>
+                </div>
+
+                <div class="form-group full">
+                    <button type="submit">ลงทะเบียน</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ยืนยันข้อมูล</h2>
+            </div>
+            <div class="confirm-details">
+                <div class="detail-item">
+                    <span class="detail-label">ชื่อ-นามสกุล</span>
+                    <span id="confirmName"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">ที่อยู่</span>
+                    <span id="confirmAddress"></span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal('confirmModal')">แก้ไข</button>
+                <button type="button" onclick="submitForm()">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <i class="fas fa-check-circle success-icon"></i>
+            <h2 style="margin-block-end: 1rem;">ลงทะเบียนสำเร็จ</h2>
+            <button onclick="closeModal('successModal'); resetForm();">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://express-test-api-mocha.vercel.app';
+        
+        // Utility functions
+        function showLoading() {
+            document.querySelector('.loading').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading').style.display = 'none';
+        }
+
+        function showModal(id) {
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function validateField(field) {
+            const errorElement = field.nextElementSibling;
+            if (!field.value) {
+                field.classList.add('error');
+                errorElement.style.display = 'block';
+                return false;
+            }
+            field.classList.remove('error');
+            errorElement.style.display = 'none';
+            return true;
+        }
+
+        // API calls
+        async function loadProvinces() {
+            try {
+                showLoading();
+                const response = await axios.get(`${API_URL}/provinces`);
+                const provinces = response.data;
+                const select = document.getElementById('province');
+                
+                provinces.forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province;
+                    option.textContent = province;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading provinces:', error);
+                alert('ไม่สามารถโหลดข้อมูลจังหวัดได้');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function loadDistricts(province) {
+            try {
+                showLoading();
+                const select = document.getElementById('district');
+                const subdistrictSelect = document.getElementById('subdistrict');
+                
+                select.innerHTML = '<option value="">เลือกอำเภอ</option>';
+                subdistrictSelect.innerHTML = '<option value="">เลือกตำบล</option>';
+                
+                select.disabled = false;
+                subdistrictSelect.disabled = true;
+
+                const response = await axios.get(`${API_URL}/provinces/${province}`);
+                const districts = response.data;
+                
+                districts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                alert('ไม่สามารถโหลดข้อมูลอำเภอได้');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function loadSubdistricts(province, district) {
+            try {
+                showLoading();
+                const select = document.getElementById('subdistrict');
+                select.innerHTML = '<option value="">เลือกตำบล</option>';
+                select.disabled = false;
+
+                const response = await axios.get(`${API_URL}/provinces/${province}/${district}`);
+                const subdistricts = response.data;
+                
+                subdistricts.forEach(subdistrict => {
+                    const option = document.createElement('option');
+                    option.value = subdistrict;
+                    option.textContent = subdistrict;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading subdistricts:', error);
+                alert('ไม่สามารถโหลดข้อมูลตำบลได้');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function submitForm() {
+        try {
+            showLoading();
+            // สร้าง username จากชื่อ-นามสกุล และเวลาปัจจุบัน
+            const timestamp = new Date().getTime();
+            const username = `user_${timestamp}`;
+            // สร้าง password แบบสุ่ม
+            const password = Math.random().toString(36).slice(-8);
+            
+            const formData = {
+                firstname: document.getElementById('firstname').value,
+                lastname: document.getElementById('lastname').value,
+                email: `${username}@example.com`, // สร้าง email อัตโนมัติ
+                username: username,
+                password: password,
+                province: document.getElementById('province').value,
+                district: document.getElementById('district').value,
+                sub_district: document.getElementById('subdistrict').value
+            };
+
+            const response = await axios.post(`${API_URL}/register`, formData);
+            console.log('Response:', response);
+            closeModal('confirmModal');
+            showModal('successModal');
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    }
+
+        function resetForm() {
+            const form = document.getElementById('registrationForm');
+            form.reset();
+            document.getElementById('district').disabled = true;
+            document.getElementById('subdistrict').disabled = true;
+        }
+
+        function showConfirmation() {
+            const firstname = document.getElementById('firstname').value;
+            const lastname = document.getElementById('lastname').value;
+            const province = document.getElementById('province').value;
+            const district = document.getElementById('district').value;
+            const subdistrict = document.getElementById('subdistrict').value;
+
+            document.getElementById('confirmName').textContent = `${firstname} ${lastname}`;
+            document.getElementById('confirmAddress').textContent = 
+                `ตำบล${subdistrict} อำเภอ${district} จังหวัด${province}`;
+            
+            showModal('confirmModal');
+        }
+
+        // Event Listeners
+        document.getElementById('province').addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadDistricts(e.target.value);
+            } else {
+                document.getElementById('district').disabled = true;
+                document.getElementById('subdistrict').disabled = true;
+            }
+            validateField(e.target);
+        });
+
+        document.getElementById('district').addEventListener('change', (e) => {
+            if (e.target.value) {
+                const province = document.getElementById('province').value;
+                loadSubdistricts(province, e.target.value);
+            } else {
+                document.getElementById('subdistrict').disabled = true;
+            }
+            validateField(e.target);
+        });
+
+        document.getElementById('subdistrict').addEventListener('change', (e) => {
+            validateField(e.target);
+        });
+
+        document.getElementById('registrationForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const fields = e.target.querySelectorAll('input, select');
+            let isValid = true;
+            
+            fields.forEach(field => {
+                if (!validateField(field)) {
+                    isValid = false;
+                }
+            });
+
+            if (isValid) {
+                showConfirmation();
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = (event) => {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+
+        // Initialize
+        loadProvinces();
+    </script>
+</body>
+</html> 
