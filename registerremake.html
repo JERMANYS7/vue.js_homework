@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app" class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <!-- Alert for showing messages -->
+                <div v-if="alertMessage" :class="`alert alert-${alertType} alert-dismissible fade show`" role="alert">
+                    {{ alertMessage }}
+                    <button type="button" class="btn-close" @click="alertMessage = ''" aria-label="Close"></button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">ลงทะเบียน</h3>
+                    </div>
+                    <div class="card-body">
+                        <form @submit.prevent="submitForm" class="needs-validation" novalidate>
+                            <!-- Username -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">ชื่อผู้ใช้</label>
+                                <input type="text" class="form-control" id="username" 
+                                    v-model.trim="formData.username" required
+                                    :class="{'is-invalid': !isUsernameValid && isSubmitted}">
+                                <div class="invalid-feedback">
+                                    กรุณากรอกชื่อผู้ใช้ (อย่างน้อย 3 ตัวอักษร)
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">รหัสผ่าน</label>
+                                <input type="password" class="form-control" id="password" 
+                                    v-model.trim="formData.password" required
+                                    :class="{'is-invalid': !isPasswordValid && isSubmitted}">
+                                <div class="invalid-feedback">
+                                    กรุณากรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">อีเมล</label>
+                                <input type="email" class="form-control" id="email" 
+                                    v-model.trim="formData.email" required
+                                    :class="{'is-invalid': !isEmailValid && isSubmitted}">
+                                <div class="invalid-feedback">
+                                    กรุณากรอกอีเมลให้ถูกต้อง
+                                </div>
+                            </div>
+
+                            <!-- Province -->
+                            <div class="mb-3">
+                                <label for="province" class="form-label">จังหวัด</label>
+                                <select class="form-select" id="province" 
+                                    v-model="formData.province" 
+                                    @change="loadDistricts"
+                                    required
+                                    :class="{'is-invalid': !isProvinceValid && isSubmitted}">
+                                    <option value="">เลือกจังหวัด</option>
+                                    <option v-for="province in provinces" :key="province" :value="province">
+                                        {{ province }}
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    กรุณาเลือกจังหวัด
+                                </div>
+                            </div>
+
+                            <!-- District -->
+                            <div class="mb-3">
+                                <label for="district" class="form-label">อำเภอ</label>
+                                <select class="form-select" id="district" 
+                                    v-model="formData.district"
+                                    @change="loadSubDistricts"
+                                    required
+                                    :disabled="!formData.province"
+                                    :class="{'is-invalid': !isDistrictValid && isSubmitted}">
+                                    <option value="">เลือกอำเภอ</option>
+                                    <option v-for="district in districts" :key="district" :value="district">
+                                        {{ district }}
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    กรุณาเลือกอำเภอ
+                                </div>
+                            </div>
+
+                            <!-- Sub District -->
+                            <div class="mb-3">
+                                <label for="subDistrict" class="form-label">ตำบล</label>
+                                <select class="form-select" id="subDistrict" 
+                                    v-model="formData.sub_district"
+                                    required
+                                    :disabled="!formData.district"
+                                    :class="{'is-invalid': !isSubDistrictValid && isSubmitted}">
+                                    <option value="">เลือกตำบล</option>
+                                    <option v-for="subDistrict in subDistricts" :key="subDistrict" :value="subDistrict">
+                                        {{ subDistrict }}
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    กรุณาเลือกตำบล
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100" :disabled="isLoading">
+                                {{ isLoading ? 'กำลังดำเนินการ...' : 'ลงทะเบียน' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue
+        
+        createApp({
+            setup() {
+                const formData = ref({
+                    username: '',
+                    password: '',
+                    email: '',
+                    province: '',
+                    district: '',
+                    sub_district: ''
+                })
+        
+                const provinces = ref([])
+                const districts = ref([])
+                const subDistricts = ref([])
+                const isSubmitted = ref(false)
+                const isLoading = ref(false)
+                const alertMessage = ref('')
+                const alertType = ref('success')
+        
+                // Validation computed properties
+                const isUsernameValid = computed(() => formData.value.username.length >= 3)
+                const isPasswordValid = computed(() => formData.value.password.length >= 6)
+                const isEmailValid = computed(() => {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                    return emailRegex.test(formData.value.email)
+                })
+                const isProvinceValid = computed(() => formData.value.province !== '')
+                const isDistrictValid = computed(() => formData.value.district !== '')
+                const isSubDistrictValid = computed(() => formData.value.sub_district !== '')
+        
+                const showAlert = (message, type = 'success') => {
+                    alertMessage.value = message
+                    alertType.value = type
+                    setTimeout(() => {
+                        alertMessage.value = ''
+                    }, 5000)
+                }
+        
+                // Load provinces when component mounts
+                const loadProvinces = async () => {
+                    try {
+                        const response = await axios.get('https://express-test-api-mocha.vercel.app/provinces')
+                        provinces.value = response.data
+                    } catch (error) {
+                        console.error('Error loading provinces:', error)
+                        showAlert('ไม่สามารถโหลดข้อมูลจังหวัดได้', 'danger')
+                    }
+                }
+        
+                // Load districts when province is selected
+                const loadDistricts = async () => {
+                    if (!formData.value.province) return
+                    try {
+                        const response = await axios.get(
+                            `https://express-test-api-mocha.vercel.app/provinces/${encodeURIComponent(formData.value.province)}`
+                        )
+                        districts.value = response.data
+                        formData.value.district = ''
+                        formData.value.sub_district = ''
+                        subDistricts.value = []
+                    } catch (error) {
+                        console.error('Error loading districts:', error)
+                        showAlert('ไม่สามารถโหลดข้อมูลอำเภอได้', 'danger')
+                    }
+                }
+        
+                // Load sub-districts when district is selected
+                const loadSubDistricts = async () => {
+                    if (!formData.value.district) return
+                    try {
+                        const response = await axios.get(
+                            `https://express-test-api-mocha.vercel.app/provinces/${encodeURIComponent(formData.value.province)}/${encodeURIComponent(formData.value.district)}`
+                        )
+                        subDistricts.value = response.data
+                        formData.value.sub_district = ''
+                    } catch (error) {
+                        console.error('Error loading sub-districts:', error)
+                        showAlert('ไม่สามารถโหลดข้อมูลตำบลได้', 'danger')
+                    }
+                }
+        
+                // Form submission
+                const submitForm = async () => {
+                    isSubmitted.value = true
+        
+                    // Check if all validations pass
+                    if (!isUsernameValid.value || !isPasswordValid.value || !isEmailValid.value || 
+                        !isProvinceValid.value || !isDistrictValid.value || !isSubDistrictValid.value) {
+                        showAlert('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง', 'danger')
+                        return
+                    }
+        
+                    isLoading.value = true
+                    try {
+                        // Prepare the request data
+                        const requestData = {
+                            username: formData.value.username.trim(),
+                            password: formData.value.password.trim(),
+                            email: formData.value.email.trim(),
+                            province: formData.value.province,
+                            district: formData.value.district,
+                            sub_district: formData.value.sub_district
+                        }
+        
+                        // Set up axios config
+                        const config = {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        }
+        
+                        // Make the request
+                        const response = await axios.post(
+                            'https://express-test-api-mocha.vercel.app/register',
+                            JSON.stringify(requestData),
+                            config
+                        )
+        
+                        console.log('Registration successful:', response.data)
+                        showAlert('ลงทะเบียนสำเร็จ')
+                        
+                        // Reset form
+                        formData.value = {
+                            username: '',
+                            password: '',
+                            email: '',
+                            province: '',
+                            district: '',
+                            sub_district: ''
+                        }
+                        isSubmitted.value = false
+                    } catch (error) {
+                        console.error('Error submitting form:', error)
+                        let errorMessage = 'เกิดข้อผิดพลาดในการลงทะเบียน'
+                        
+                        if (error.response) {
+                            const status = error.response.status
+                            const data = error.response.data
+                            
+                            if (status === 400) {
+                                errorMessage = 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบข้อมูลที่กรอก'
+                            } else if (status === 409) {
+                                errorMessage = 'มีผู้ใช้งานนี้ในระบบแล้ว'
+                            } else if (status === 500) {
+                                errorMessage = 'เกิดข้อผิดพลาดจากระบบ กรุณาลองใหม่อีกครั้ง'
+                            }
+                            
+                            if (data && data.message) {
+                                errorMessage += `: ${data.message}`
+                            }
+                        }
+                        
+                        showAlert(errorMessage, 'danger')
+                    } finally {
+                        isLoading.value = false
+                    }
+                }
+        
+                // Load provinces when component mounts
+                loadProvinces()
+        
+                return {
+                    formData,
+                    provinces,
+                    districts,
+                    subDistricts,
+                    isSubmitted,
+                    isLoading,
+                    alertMessage,
+                    alertType,
+                    isUsernameValid,
+                    isPasswordValid,
+                    isEmailValid,
+                    isProvinceValid,
+                    isDistrictValid,
+                    isSubDistrictValid,
+                    loadDistricts,
+                    loadSubDistricts,
+                    submitForm
+                }
+            }
+        }).mount('#app')
+        </script>
+</body>
+</html>
